@@ -1,46 +1,207 @@
+use std::collections::HashMap;
+
 struct Piece {
     name: String,
     white: bool,
     position: (char, i32),
-    ways_to_move: Vec<(i32, i32)>,
+    ways_to_move: Vec<(i32, i32, bool)>, // how many squares vertically, horizontally, allows multiple moves
 }
 
 struct Game {
-    pieces: [[Piece;8];8],
+    pieces: HashMap<(char, i32), Piece>,
 }
 
-fn letter_to_int(ch: char)->i32{
+fn letter_to_int(ch: char) -> i32 {
     return ch as i32 - 64;
 }
-fn int_to_letter(num: i32)->char{
+
+fn int_to_letter(num: i32) -> char {
     return ((num + 64) as u8) as char;
 }
 
-fn init_pieces(game: &mut Game) {
-    for i in 1..9 {
-        // white pawns init: from 'A' to 'H' in row 2 (index 1)
-        let pawn: Piece = Piece {
+fn init_pieces() -> Game {
+    // Create an empty board with default pieces
+    let mut piece_map = HashMap::<(char, i32), Piece>::new();
+
+    for i in 1..8 {
+        // White pawns init: from 'A' to 'H' in row 2 (index 1)
+        let white_pawn = Piece {
             name: "pawn".to_string(),
             white: true,
             position: (int_to_letter(i), 2),
-            ways_to_move: [(1,0),(1,-1),(1,1)].to_vec(),
+            ways_to_move: vec![(0, 1, false), (1, 1, false), (-1, 1, false)],
         };
-        game.pieces[1][(i as usize)-1] = pawn;
+        piece_map.insert((int_to_letter(i), 2), white_pawn);
 
         // Black pawns init: from 'A' to 'H' in row 7 (index 6)
-        let pawn: Piece = Piece {
+        let black_pawn = Piece {
             name: "pawn".to_string(),
             white: false,
-            position: (int_to_letter(i), 2),
-            ways_to_move: [(-1,0),(-1,-1),(-1,1)].to_vec(),
+            position: (int_to_letter(i), 7),
+            ways_to_move: vec![(0, -1, false), (-1, -1, false), (1, -1, false)],
         };
-        game.pieces[6][(i as usize)-1] = pawn;
+        piece_map.insert((int_to_letter(i), 7), black_pawn);
+
+        if i == 1 || i == 8 {
+            // White rooks init: from 'A' to 'H' in row 1 (index 0)
+            let white_rook = Piece {
+                name: "rook".to_string(),
+                white: true,
+                position: (int_to_letter(i), 1),
+                ways_to_move: vec![(-1, 0, true), (0, -1, true), (1, 0, true), (0, 1, true)],
+            };
+            piece_map.insert((int_to_letter(i), 8), white_rook);
+
+            // Black rooks init: from 'A' to 'H' in row 8 (index 7)
+            let black_rook = Piece {
+                name: "rook".to_string(),
+                white: false,
+                position: (int_to_letter(i), 8),
+                ways_to_move: vec![(-1, 0, true), (0, -1, true), (1, 0, true), (0, 1, true)],
+            };
+            piece_map.insert((int_to_letter(i), 8), black_rook);
+        } else if i == 2 || i == 7 {
+            // White knights init: from 'A' to 'H' in row 1 (index 0)
+            let white_knight = Piece {
+                name: "knight".to_string(),
+                white: true,
+                position: (int_to_letter(i), 1),
+                ways_to_move: vec![
+                    (2, 1, false),
+                    (2, -1, false),
+                    (-2, 1, false),
+                    (-2, -1, false),
+                    (1, 2, false),
+                    (-1, 2, false),
+                    (1, -2, false),
+                    (-1, -2, false),
+                ],
+            };
+            piece_map.insert((int_to_letter(i), 1), white_knight);
+
+            // Black knights init: from 'A' to 'H' in row 8 (index 7)
+            let black_knight = Piece {
+                name: "knight".to_string(),
+                white: false,
+                position: (int_to_letter(i), 8),
+                ways_to_move: vec![
+                    (2, 1, false),
+                    (2, -1, false),
+                    (-2, 1, false),
+                    (-2, -1, false),
+                    (1, 2, false),
+                    (-1, 2, false),
+                    (1, -2, false),
+                    (-1, -2, false),
+                ],
+            };
+            piece_map.insert((int_to_letter(i), 8), black_knight);
+        } else if i == 3 || i == 6 {
+            // White bishops init: from 'A' to 'H' in row 1 (index 0)
+            let white_bishop = Piece {
+                name: "bishop".to_string(),
+                white: true,
+                position: (int_to_letter(i), 1),
+                ways_to_move: vec![(1, 1, true), (1, -1, true), (-1, 1, true), (-1, -1, true)],
+            };
+            piece_map.insert((int_to_letter(i), 1), white_bishop);
+
+            // Black bishops init: from 'A' to 'H' in row 8 (index 7)
+            let black_bishop = Piece {
+                name: "bishop".to_string(),
+                white: false,
+                position: (int_to_letter(i), 8),
+                ways_to_move: vec![(1, 1, true), (1, -1, true), (-1, 1, true), (-1, -1, true)],
+            };
+            piece_map.insert((int_to_letter(i), 8), black_bishop);
+        } else if i == 4 {
+            // White king init: from 'A' to 'H' in row 1 (index 0)
+            let white_king = Piece {
+                name: "king".to_string(),
+                white: true,
+                position: (int_to_letter(i), 1),
+                ways_to_move: vec![
+                    (1, 1, false),
+                    (1, -1, false),
+                    (-1, 1, false),
+                    (-1, -1, false),
+                    (1, 0, false),
+                    (-1, 0, false),
+                    (0, 1, false),
+                    (0, -1, false),
+                ],
+            };
+            piece_map.insert((int_to_letter(i), 1), white_king);
+            // Black king init: from 'A' to 'H' in row 8 (index 7)
+            let black_king = Piece {
+                name: "king".to_string(),
+                white: false,
+                position: (int_to_letter(i), 8),
+                ways_to_move: vec![
+                    (1, 1, false),
+                    (1, -1, false),
+                    (-1, 1, false),
+                    (-1, -1, false),
+                    (1, 0, false),
+                    (-1, 0, false),
+                    (0, 1, false),
+                    (0, -1, false),
+                ],
+            };
+            piece_map.insert((int_to_letter(i), 8), black_king);
+        } else {
+            // White queen init: from 'A' to 'H' in row 1 (index 0)
+            let white_queen = Piece {
+                name: "queen".to_string(),
+                white: true,
+                position: (int_to_letter(i), 1),
+                ways_to_move: vec![
+                    (1, 1, true),
+                    (1, -1, true),
+                    (-1, 1, true),
+                    (-1, -1, true),
+                    (1, 0, true),
+                    (-1, 0, true),
+                    (0, 1, true),
+                    (0, -1, true),
+                ],
+            };
+            piece_map.insert((int_to_letter(i), 1), white_queen);
+
+            // Black queen init: from 'A' to 'H' in row 8 (index 7)
+            let black_queen = Piece {
+                name: "queen".to_string(),
+                white: false,
+                position: (int_to_letter(i), 8),
+                ways_to_move: vec![
+                    (1, 1, true),
+                    (1, -1, true),
+                    (-1, 1, true),
+                    (-1, -1, true),
+                    (1, 0, true),
+                    (-1, 0, true),
+                    (0, 1, true),
+                    (0, -1, true),
+                ],
+            };
+            piece_map.insert((int_to_letter(i), 8), black_queen);
+        }
     }
+    Game { pieces: piece_map }
 }
 
+/* 
+fn print_board(game: &Game) {
+    for i in 1..8{
+        for j in 1..8{
+            print!("{game.pieces.}")
+        }   
+    }
+}*/
+
 fn main() {
-    let conversion = letter_to_int('C');
-    println!("{conversion}");
-    let conversion = int_to_letter(2);
-    println!("{conversion}");
+    //let game = init_pieces();
+    println!("Game initialized!");
+    let mut game = init_pieces();
+    println!("Game Finished!");
 }
