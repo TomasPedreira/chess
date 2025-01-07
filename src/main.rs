@@ -280,6 +280,10 @@ fn is_move_legal(game: &Game, piece: &Piece, end_pos: (char, i32)) -> bool {
 fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> bool {
     let moving_piece: Option<&Piece> = game.pieces.get(&start_pos);
     if let Some(piece) = moving_piece {
+        if piece.white != game.white_to_move {
+           println!("Not your piece dumbass!"); 
+           return false; 
+        }
         if is_move_legal(game, piece, end_pos) {
             println!("Moving: {}", piece.name);
             let new_piece = Piece {
@@ -290,6 +294,7 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
             };
             game.pieces.insert(end_pos, new_piece);
             game.pieces.remove(&start_pos);
+            game.white_to_move = false;
             return true;
         }
     } else {
