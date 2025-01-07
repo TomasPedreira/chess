@@ -213,7 +213,7 @@ fn can_make_single_move(
     let start_column: i32 = letter_to_int(current_pos.0);
     let start_row = current_pos.1;
     let value = game.pieces.get(end_pos);
-    if !is_within_bounds(end_pos){
+    if !is_within_bounds(end_pos) {
         return false;
     }
     if let Some(piece) = value {
@@ -263,17 +263,14 @@ fn is_move_legal(game: &Game, piece: &Piece, end_pos: (char, i32)) -> bool {
     for mov in move_coll {
         if mov.2 {
             if can_make_multiple_move(game, mov, &current_pos, &end_pos, &piece.white) {
-                println!("Correct {} move", piece.name);
                 return true;
             }
         } else {
             if can_make_single_move(game, mov, &current_pos, &end_pos, &piece.white) {
-                println!("Correct {} move", piece.name);
                 return true;
             }
         }
     }
-    println!("Incorrect {} move", piece.name);
     return false;
 }
 
@@ -281,8 +278,8 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
     let moving_piece: Option<&Piece> = game.pieces.get(&start_pos);
     if let Some(piece) = moving_piece {
         if piece.white != game.white_to_move {
-           println!("Not your piece dumbass!"); 
-           return false; 
+            println!("Not your piece dumbass!");
+            return false;
         }
         if is_move_legal(game, piece, end_pos) {
             println!("Moving: {}", piece.name);
@@ -294,7 +291,12 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
             };
             game.pieces.insert(end_pos, new_piece);
             game.pieces.remove(&start_pos);
-            game.white_to_move = false;
+            if game.white_to_move {
+                game.white_to_move = false;
+            } else {
+                game.white_to_move = true;
+            }
+
             return true;
         }
     } else {
@@ -309,31 +311,42 @@ fn print_board(game: &Game) {
             let key = i as i32;
             let value = game.pieces.get(&(int_to_letter(j), key));
             if let Some(piece) = value {
+                let padding = 10.0-piece.name.len() as f32;
+                let left_pd = ((padding / 2.0)).floor() as i32;
+                let right_pd = ((padding / 2.0)).ceil() as i32;
+                //print!("{} + {} = {}", left_pd, right_pd, piece.name.len() as i32 );
+                let mut color = "b".to_string();
                 if piece.white {
-                    print!("w{:<10}", piece.name);
-                } else {
-                    print!("b{:<10}", piece.name);
-                }
+                    color = "w".to_string();
+                } 
+                print!("{}w{}{}"," ".repeat(left_pd as usize).to_string(), piece.name, " ".repeat(right_pd as usize).to_string());
             } else {
                 let st: String = ".".to_string();
-                print!("{:<11}", st);
+                print!("     {}     ", st);
             }
         }
         println!("{}", i);
     }
     for i in 1..=8 {
         let st = int_to_letter(i as i32);
-        print!("{:<11}", st);
+        print!("     {}     ", st);
     }
     println!("");
 }
 
 fn main() {
-    //let game = init_pieces();
     println!("Game initialized!");
     let mut game = init_pieces();
     print_board(&game);
-    make_move(&mut game, ('E', 2 as i32), ('E', 3 as i32));
-    make_move(&mut game, ('D', 1 as i32), ('H', 5 as i32));
+    if !make_move(&mut game, ('E', 2 as i32), ('E', 3 as i32)) {
+        return;
+    }
+    if !make_move(&mut game, ('G', 8 as i32), ('F', 9 as i32)) {
+        return;
+    }
+    if !make_move(&mut game, ('D', 1 as i32), ('H', 5 as i32)) {
+        return;
+    }
+
     print_board(&game);
 }
