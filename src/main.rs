@@ -194,6 +194,13 @@ fn init_pieces() -> Game {
     };
 }
 
+fn is_within_bounds(pos: &(char, i32)) -> bool {
+    let col: i32 = letter_to_int(pos.0);
+    let row: i32 = pos.1;
+
+    return col < 9 && col > 0 && row < 9 && row > 0;
+}
+
 fn can_make_single_move(
     game: &Game,
     mov: &(i32, i32, bool),
@@ -206,7 +213,9 @@ fn can_make_single_move(
     let start_column: i32 = letter_to_int(current_pos.0);
     let start_row = current_pos.1;
     let value = game.pieces.get(end_pos);
-
+    if !is_within_bounds(end_pos){
+        return false;
+    }
     if let Some(piece) = value {
         if &piece.white == is_white {
             return false;
@@ -232,27 +241,17 @@ fn can_make_multiple_move(
     end_pos: &(char, i32),
     is_white: &bool,
 ) -> bool {
-    let end_row: i32 = end_pos.1;
-    let end_col: i32 = letter_to_int(end_pos.0.clone());
-    let start_col: i32 = letter_to_int(current_pos.0);
-    let start_row: i32 = current_pos.1;
+    let mut cur_pos: (char, i32) = current_pos.clone();
 
-    let row_dif = end_row - start_row;
-    let col_dif = end_col - start_col;
-
-    let cur_col = start_col.clone();
-    let cur_row = start_row.clone();
-
-    while &(int_to_letter(cur_col), cur_row) != end_pos
-        && cur_col < 9
-        && cur_col > 0
-        && cur_row < 9
-        && cur_row > 0
-    {
-        let next_pos = next_move(mov, current_pos);
-        if !can_make_single_move(game, mov, current_pos, end_pos, is_white) {
-            return false;
+    while is_within_bounds(&cur_pos) {
+        let next_pos: (char, i32) = next_move(mov, &cur_pos);
+        if !can_make_single_move(game, mov, &cur_pos, &next_pos, is_white) {
+            break;
         }
+        if &next_pos == end_pos {
+            return true;
+        }
+        cur_pos = next_pos.clone();
     }
     return false;
 }
@@ -329,6 +328,7 @@ fn main() {
     println!("Game initialized!");
     let mut game = init_pieces();
     print_board(&game);
-    make_move(&mut game, ('B', 1 as i32), ('A', 3 as i32));
+    make_move(&mut game, ('E', 2 as i32), ('E', 3 as i32));
+    make_move(&mut game, ('D', 1 as i32), ('H', 5 as i32));
     print_board(&game);
 }
