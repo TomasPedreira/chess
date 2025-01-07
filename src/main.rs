@@ -23,7 +23,7 @@ fn init_pieces() -> Game {
     // Create an empty board with default pieces
     let mut piece_map = HashMap::<(char, i32), Piece>::new();
 
-    for i in 1..8 {
+    for i in 1..=8 {
         // White pawns init: from 'A' to 'H' in row 2 (index 1)
         let white_pawn = Piece {
             name: "pawn".to_string(),
@@ -50,7 +50,7 @@ fn init_pieces() -> Game {
                 position: (int_to_letter(i), 1),
                 ways_to_move: vec![(-1, 0, true), (0, -1, true), (1, 0, true), (0, 1, true)],
             };
-            piece_map.insert((int_to_letter(i), 8), white_rook);
+            piece_map.insert((int_to_letter(i), 1), white_rook);
 
             // Black rooks init: from 'A' to 'H' in row 8 (index 7)
             let black_rook = Piece {
@@ -190,18 +190,31 @@ fn init_pieces() -> Game {
     Game { pieces: piece_map }
 }
 
-/* 
 fn print_board(game: &Game) {
-    for i in 1..8{
-        for j in 1..8{
-            print!("{game.pieces.}")
-        }   
+    for i in (1..=8).rev() {
+        for j in 1..=8 {
+            let key = i as i32;
+            let value = game.pieces.get(&(int_to_letter(j), key));
+            if let Some(piece) = value {
+                if piece.white{
+                    print!("w{:<10}", piece.name);
+                }else{
+                    print!("b{:<10}", piece.name);
+                }
+                
+            } else {
+                let st: String = ".".to_string();
+                print!("{:<11}", st); // Empty square
+            }
+        }
+        println!("");
     }
-}*/
+}
 
 fn main() {
     //let game = init_pieces();
     println!("Game initialized!");
     let mut game = init_pieces();
+    print_board(&game);
     println!("Game Finished!");
 }
