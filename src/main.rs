@@ -9,6 +9,7 @@ struct Piece {
 
 struct Game {
     pieces: HashMap<(char, i32), Piece>,
+    white_to_move: bool,
 }
 
 fn letter_to_int(ch: char) -> i32 {
@@ -114,7 +115,7 @@ fn init_pieces() -> Game {
                 ways_to_move: vec![(1, 1, true), (1, -1, true), (-1, 1, true), (-1, -1, true)],
             };
             piece_map.insert((int_to_letter(i), 8), black_bishop);
-        } else if i == 4 {
+        } else if i == 5 {
             // White king init: from 'A' to 'H' in row 1 (index 0)
             let white_king = Piece {
                 name: "king".to_string(),
@@ -187,7 +188,22 @@ fn init_pieces() -> Game {
             piece_map.insert((int_to_letter(i), 8), black_queen);
         }
     }
-    Game { pieces: piece_map }
+    return Game { pieces: piece_map,
+    white_to_move: true };
+}
+
+fn is_move_legal(piece: &Piece, end_pos: (char, i32)){
+    let end_column = letter_to_int(&end_pos.1) 
+    let current_pos:(char. i32)  = piece.position.clone();
+}
+
+fn make_move(game: &Game, start_pos: (char, i32), end_pos: (char, i32)){
+    let moving_piece: Option<&Piece> = game.pieces.get(&start_pos);
+    if let Some(piece) = moving_piece { 
+        println!("Moving: {}", piece.name);
+    }else {
+        println!("Moving: Nothing idiot!");
+    }
 }
 
 fn print_board(game: &Game) {
@@ -204,7 +220,7 @@ fn print_board(game: &Game) {
                 
             } else {
                 let st: String = ".".to_string();
-                print!("{:<11}", st); // Empty square
+                print!("{:<11}", st); 
             }
         }
         println!("");
@@ -216,5 +232,6 @@ fn main() {
     println!("Game initialized!");
     let mut game = init_pieces();
     print_board(&game);
+    make_move(&game, ('E',1 as i32), ('b',4 as i32));
     println!("Game Finished!");
 }
