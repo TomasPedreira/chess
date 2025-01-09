@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use std::io;
 struct Piece {
     name: String,
     white: bool,
@@ -10,6 +10,7 @@ struct Piece {
 struct Game {
     pieces: HashMap<(char, i32), Piece>,
     white_to_move: bool,
+    kings: (Piece, Piece),
 }
 
 fn letter_to_int(ch: char) -> i32 {
@@ -196,6 +197,38 @@ fn init_pieces() -> Game {
     return Game {
         pieces: piece_map,
         white_to_move: true,
+        kings: (
+            Piece {
+                name: "king".to_string(),
+                white: false,
+                position: ('E', 8),
+                ways_to_move: vec![
+                    (1, 1, false),
+                    (1, -1, false),
+                    (-1, 1, false),
+                    (-1, -1, false),
+                    (1, 0, false),
+                    (-1, 0, false),
+                    (0, 1, false),
+                    (0, -1, false),
+                ],
+            },
+            Piece {
+                name: "king".to_string(),
+                white: true,
+                position: ('E', 1),
+                ways_to_move: vec![
+                    (1, 1, false),
+                    (1, -1, false),
+                    (-1, 1, false),
+                    (-1, -1, false),
+                    (1, 0, false),
+                    (-1, 0, false),
+                    (0, 1, false),
+                    (0, -1, false),
+                ],
+            },
+        ),
     };
 }
 
@@ -323,7 +356,7 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
 
             return true;
         } else {
-            println!("iligal move");
+            println!("ilegal move");
         }
     } else {
         println!("Moving: Nothing idiot!");
@@ -357,7 +390,7 @@ fn print_board(game: &Game) {
                 print!("     {}     ", st);
             }
         }
-        println!("{}", i);
+        println!("{}\n", i);
     }
     for i in 1..=8 {
         let st = int_to_letter(i as i32);
@@ -366,21 +399,87 @@ fn print_board(game: &Game) {
     println!("");
 }
 
+fn get_user_pos() -> Option<(char, i32)> {
+    let mut input_str = String::new();
+    io::stdin().read_line(&mut input_str).expect("lolada");
+    match input_str.to_uppercase().trim().chars().collect::<Vec<_>>()[..] {
+        [letter, num] => {
+            if num.is_numeric() {
+                return Some((letter, (num) as i32 - '0' as i32));
+            } else {
+                return None;
+            }
+        }
+        _ => {
+            return None;
+        }
+    }
+}
+fn is_in_check(game: &Game, king_color: bool) -> bool {
+    let king: &(char, i32);
+    if king_color {
+        king = &game.kings.0.position;
+    } else {
+        king = &game.kings.1.position;
+    }
+
+    for val in &game.pieces {
+        let piece = val.1;
+        if piece.name == "king" {
+            continue;
+        }
+        if piece.white == king_color {
+            continue;
+        }
+        let is_white = !king_color;
+        let is_pawn = piece.name == "pawn";
+        for mov in &piece.ways_to_move {
+            if mov.2 {
+                if can_make_multiple_move(game, mov, &piece.position, king, &is_white, is_pawn) {
+                    return true;
+                }
+            } else {
+                if can_make_single_move(game, mov, &piece.position, king, &is_white, is_pawn) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 fn main() {
     println!("Game initialized!");
     let mut game = init_pieces();
-    print_board(&game);
-    if !make_move(&mut game, ('E', 2 as i32), ('F', 3 as i32)) {
-        return;
-    }
-    print_board(&game);
-    /*if !make_move(&mut game, ('F', 7 as i32), ('F', 5 as i32)) {
-        return;
-    }
-    print_board(&game);
-    if !make_move(&mut game, ('E', 4 as i32), ('F', 5 as i32)) {
-        return;
-    }*/
 
     print_board(&game);
+    loop {
+        let mut init_pos: (char, i32) = ('z', -1);
+        let mut end_pos: (char, i32) = ('z', -1);
+        match get_user_pos() {
+            Some(pos) => {
+                init_pos = pos;
+            }
+            None => {
+                println!("lolada");
+                continue;
+            }
+        }
+        match get_user_pos() {
+            Some(pos) => {
+                end_pos = pos;
+            }
+            None => {
+                println!("lolada");
+                continue;
+            }
+        }
+        if !make_move(&mut game, init_pos, end_pos) {
+            return;
+        }
+
+        print_board(&game);
+        let is_check = is_in_check(&game, game.white_to_move);
+        println!("{}", !is_check);
+    }
 }
