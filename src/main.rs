@@ -10,7 +10,7 @@ struct Piece {
 struct Game {
     pieces: HashMap<(char, i32), Piece>,
     white_to_move: bool,
-    kings: (Piece, Piece),
+    kings: ((char, i32), (char, i32)),
 }
 
 fn letter_to_int(ch: char) -> i32 {
@@ -197,38 +197,7 @@ fn init_pieces() -> Game {
     return Game {
         pieces: piece_map,
         white_to_move: true,
-        kings: (
-            Piece {
-                name: "king".to_string(),
-                white: false,
-                position: ('E', 8),
-                ways_to_move: vec![
-                    (1, 1, false),
-                    (1, -1, false),
-                    (-1, 1, false),
-                    (-1, -1, false),
-                    (1, 0, false),
-                    (-1, 0, false),
-                    (0, 1, false),
-                    (0, -1, false),
-                ],
-            },
-            Piece {
-                name: "king".to_string(),
-                white: true,
-                position: ('E', 1),
-                ways_to_move: vec![
-                    (1, 1, false),
-                    (1, -1, false),
-                    (-1, 1, false),
-                    (-1, -1, false),
-                    (1, 0, false),
-                    (-1, 0, false),
-                    (0, 1, false),
-                    (0, -1, false),
-                ],
-            },
-        ),
+        kings: (('E', 1), ('E', 8)),
     };
 }
 
@@ -346,6 +315,13 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
                 position: end_pos,
                 ways_to_move: piece.ways_to_move.clone(),
             };
+            if new_piece.name.clone() == "king" {
+                if new_piece.white {
+                    game.kings.0 = end_pos;
+                } else {
+                    game.kings.1 = end_pos;
+                }
+            }
             game.pieces.insert(end_pos, new_piece);
             game.pieces.remove(&start_pos);
             if game.white_to_move {
@@ -357,6 +333,7 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
             return true;
         } else {
             println!("ilegal move");
+            return false;
         }
     } else {
         println!("Moving: Nothing idiot!");
@@ -415,12 +392,12 @@ fn get_user_pos() -> Option<(char, i32)> {
         }
     }
 }
-fn is_in_check(game: &Game, king_color: bool) -> bool {
+fn is_in_check(game: &Game, white_to_move: bool) -> bool {
     let king: &(char, i32);
-    if king_color {
-        king = &game.kings.0.position;
+    if white_to_move {
+        king = &game.kings.0;
     } else {
-        king = &game.kings.1.position;
+        king = &game.kings.1;
     }
 
     for val in &game.pieces {
@@ -428,18 +405,26 @@ fn is_in_check(game: &Game, king_color: bool) -> bool {
         if piece.name == "king" {
             continue;
         }
-        if piece.white == king_color {
+        if piece.white == white_to_move {
             continue;
         }
-        let is_white = !king_color;
+        let is_white = !white_to_move;
         let is_pawn = piece.name == "pawn";
         for mov in &piece.ways_to_move {
             if mov.2 {
                 if can_make_multiple_move(game, mov, &piece.position, king, &is_white, is_pawn) {
+                    println!(
+                        "{},{}{},{}{}",
+                        piece.name, piece.position.0, piece.position.1, king.0, king.1
+                    );
                     return true;
                 }
             } else {
                 if can_make_single_move(game, mov, &piece.position, king, &is_white, is_pawn) {
+                    println!(
+                        "l{},{}{},{}{}",
+                        piece.name, piece.position.0, piece.position.1, king.0, king.1
+                    );
                     return true;
                 }
             }
@@ -453,6 +438,7 @@ fn main() {
     let mut game = init_pieces();
 
     print_board(&game);
+    
     loop {
         let mut init_pos: (char, i32) = ('z', -1);
         let mut end_pos: (char, i32) = ('z', -1);
@@ -480,6 +466,7 @@ fn main() {
 
         print_board(&game);
         let is_check = is_in_check(&game, game.white_to_move);
-        println!("{}", !is_check);
+        println!("{}", is_check);
+        
     }
 }
