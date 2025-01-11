@@ -334,7 +334,7 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
                 println!("Cand to that, youll be in check");
 
                 game.pieces.insert(
-                    end_pos,
+                    start_pos,
                     Piece {
                         name: name,
                         white: color,
@@ -342,7 +342,7 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
                         ways_to_move: ways,
                     },
                 );
-
+                game.pieces.remove(&end_pos);
                 return false;
             }
             if game.white_to_move {
@@ -461,6 +461,12 @@ fn main() {
     print_board(&game);
 
     loop {
+        let player = if game.white_to_move {
+            "White".to_string()
+        } else {
+            "Black".to_string()
+        };
+        println!("{} to play", player);
         let mut init_pos: (char, i32) = ('z', -1);
         let mut end_pos: (char, i32) = ('z', -1);
         match get_user_pos() {
@@ -482,7 +488,8 @@ fn main() {
             }
         }
         if !make_move(&mut game, init_pos, end_pos) {
-            return;
+            print_board(&game);
+            continue;
         }
 
         print_board(&game);
