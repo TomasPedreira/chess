@@ -324,6 +324,7 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
             }
             game.pieces.insert(end_pos, new_piece);
             game.pieces.remove(&start_pos);
+            
             if game.white_to_move {
                 game.white_to_move = false;
             } else {
@@ -392,9 +393,9 @@ fn get_user_pos() -> Option<(char, i32)> {
         }
     }
 }
-fn is_in_check(game: &Game, white_to_move: bool) -> bool {
+fn is_in_check(game: &Game, king_color: bool) -> bool {
     let king: &(char, i32);
-    if white_to_move {
+    if king_color {
         king = &game.kings.0;
     } else {
         king = &game.kings.1;
@@ -405,10 +406,10 @@ fn is_in_check(game: &Game, white_to_move: bool) -> bool {
         if piece.name == "king" {
             continue;
         }
-        if piece.white == white_to_move {
+        if piece.white == king_color {
             continue;
         }
-        let is_white = !white_to_move;
+        let is_white = !king_color;
         let is_pawn = piece.name == "pawn";
         for mov in &piece.ways_to_move {
             if mov.2 {
@@ -422,7 +423,7 @@ fn is_in_check(game: &Game, white_to_move: bool) -> bool {
             } else {
                 if can_make_single_move(game, mov, &piece.position, king, &is_white, is_pawn) {
                     println!(
-                        "l{},{}{},{}{}",
+                        "{},{}{},{}{}",
                         piece.name, piece.position.0, piece.position.1, king.0, king.1
                     );
                     return true;
