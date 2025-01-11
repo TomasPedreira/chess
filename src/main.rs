@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::io;
+
+#[derive(Clone)]
 struct Piece {
     name: String,
     white: bool,
@@ -7,6 +9,7 @@ struct Piece {
     ways_to_move: Vec<(i32, i32, bool)>, //  columns, rows, allows multiple moves
 }
 
+#[derive(Clone)]
 struct Game {
     pieces: HashMap<(char, i32), Piece>,
     white_to_move: bool,
@@ -208,15 +211,15 @@ fn is_within_bounds(pos: &(char, i32)) -> bool {
     return col < 9 && col > 0 && row < 9 && row > 0;
 }
 
-// TODO pawn movement fml
 fn can_make_single_move(
     game: &Game,
     mov: &(i32, i32, bool),
     current_pos: &(char, i32),
     end_pos: &(char, i32),
-    is_white: &bool,
-    is_pawn: bool,
+    piece: &Piece,
 ) -> bool {
+    let is_white = &piece.white;
+    let is_pawn = &piece.name == "pawn";
     if !is_within_bounds(end_pos) {
         return false;
     }
@@ -260,16 +263,13 @@ fn next_move(mov: &(i32, i32, bool), current_pos: &(char, i32)) -> (char, i32) {
 fn can_make_multiple_move(
     game: &Game,
     mov: &(i32, i32, bool),
-    current_pos: &(char, i32),
     end_pos: &(char, i32),
-    is_white: &bool,
-    is_pawn: bool,
+    piece: &Piece,
 ) -> bool {
-    let mut cur_pos: (char, i32) = current_pos.clone();
-
+    let mut cur_pos: (char, i32) = piece.position.clone();
     while is_within_bounds(&cur_pos) {
         let next_pos: (char, i32) = next_move(mov, &cur_pos);
-        if !can_make_single_move(game, mov, &cur_pos, &next_pos, is_white, is_pawn) {
+        if !can_make_single_move(game, mov, &cur_pos, &next_pos, piece) {
             break;
         }
         if &next_pos == end_pos {
@@ -283,30 +283,39 @@ fn can_make_multiple_move(
 fn is_move_legal(game: &Game, piece: &Piece, end_pos: (char, i32)) -> bool {
     let current_pos: (char, i32) = piece.position.clone();
     let move_coll: &Vec<(i32, i32, bool)> = &piece.ways_to_move;
-    let is_pawn = &piece.name == "pawn";
-
+    let mut can_make_move = false;
     for mov in move_coll {
         if mov.2 {
-            if can_make_multiple_move(game, mov, &current_pos, &end_pos, &piece.white, is_pawn) {
-                return true;
+            println!("checking multiple move");
+            if can_make_multiple_move(game, mov, &end_pos, &piece) {
+                can_make_move = true;
+                break;
             }
         } else {
-            if can_make_single_move(game, mov, &current_pos, &end_pos, &piece.white, is_pawn) {
-                return true;
+            println!("checking single move");
+            if can_make_single_move(game, mov, &current_pos, &end_pos, &piece) {
+                can_make_move = true;
+                break;
             }
         }
     }
-
-    return false;
+    if can_make_move {
+        let mut copy_game = game.clone();
+        let copy_piece = piece.clone();
+        let color = piece.white;
+        copy_game.pieces.insert(end_pos.clone(), copy_piece);
+        copy_game.pieces.remove(&current_pos);
+        if is_in_check(&copy_game, color) {
+            println!("You'll be in check!");
+            can_make_move = false;
+        }
+    }
+    return can_make_move;
 }
 
 fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> bool {
     let moving_piece: Option<&Piece> = game.pieces.get(&start_pos);
     if let Some(piece) = moving_piece {
-        let name = piece.name.clone();
-        let ppos = piece.position;
-        let color = piece.white;
-        let ways = piece.ways_to_move.clone();
         if piece.white != game.white_to_move {
             println!("Not your piece dumbass!");
             return false;
@@ -330,21 +339,6 @@ fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> b
                 },
             );
             game.pieces.remove(&start_pos);
-            if is_in_check(&game, game.white_to_move) {
-                println!("Cand to that, youll be in check");
-
-                game.pieces.insert(
-                    start_pos,
-                    Piece {
-                        name: name,
-                        white: color,
-                        position: ppos,
-                        ways_to_move: ways,
-                    },
-                );
-                game.pieces.remove(&end_pos);
-                return false;
-            }
             if game.white_to_move {
                 game.white_to_move = false;
             } else {
@@ -413,7 +407,47 @@ fn get_user_pos() -> Option<(char, i32)> {
         }
     }
 }
+
 fn is_in_check(game: &Game, king_color: bool) -> bool {
+    let king: &(char, i32);
+    if king_color {
+        king = &game.kings.0;
+    } else {
+        king = &game.kings.1;
+    }
+
+    for val in &game.pieces {
+        let piece = val.1;
+        if piece.name == "king" {
+            continue;
+        }
+        if piece.white == king_color {
+            continue;
+        }
+        for mov in &piece.ways_to_move {
+            if mov.2 {
+                if can_make_multiple_move(game, mov, king, &piece) {
+                    println!(
+                        "{},{}{},{}{}",
+                        piece.name, piece.position.0, piece.position.1, king.0, king.1
+                    );
+                    return true;
+                }
+            } else {
+                if can_make_single_move(game, mov, &piece.position, king, &piece) {
+                    println!(
+                        "{},{}{},{}{}",
+                        piece.name, piece.position.0, piece.position.1, king.0, king.1
+                    );
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/*fn is_mate(game: &Game, king_color: bool) -> bool {
     let king: &(char, i32);
     if king_color {
         king = &game.kings.0;
@@ -433,27 +467,18 @@ fn is_in_check(game: &Game, king_color: bool) -> bool {
         let is_pawn = piece.name == "pawn";
         for mov in &piece.ways_to_move {
             if mov.2 {
-                if can_make_multiple_move(game, mov, &piece.position, king, &is_white, is_pawn) {
-                    println!(
-                        "{},{}{},{}{}",
-                        piece.name, piece.position.0, piece.position.1, king.0, king.1
-                    );
-                    return true;
+                if can_make_multiple_move(game, mov, &piece.position,  ) {
+                    return false;
                 }
             } else {
                 if can_make_single_move(game, mov, &piece.position, king, &is_white, is_pawn) {
-                    println!(
-                        "{},{}{},{}{}",
-                        piece.name, piece.position.0, piece.position.1, king.0, king.1
-                    );
-                    return true;
+                    return false;
                 }
             }
         }
     }
-    return false;
-}
-
+    return true;
+}*/
 fn main() {
     println!("Game initialized!");
     let mut game = init_pieces();
@@ -467,8 +492,8 @@ fn main() {
             "Black".to_string()
         };
         println!("{} to play", player);
-        let mut init_pos: (char, i32) = ('z', -1);
-        let mut end_pos: (char, i32) = ('z', -1);
+        let mut init_pos: (char, i32) = ('Z', -1);
+        let mut end_pos: (char, i32) = ('Z', -1);
         match get_user_pos() {
             Some(pos) => {
                 init_pos = pos;
