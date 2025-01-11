@@ -303,28 +303,48 @@ fn is_move_legal(game: &Game, piece: &Piece, end_pos: (char, i32)) -> bool {
 fn make_move(game: &mut Game, start_pos: (char, i32), end_pos: (char, i32)) -> bool {
     let moving_piece: Option<&Piece> = game.pieces.get(&start_pos);
     if let Some(piece) = moving_piece {
+        let name = piece.name.clone();
+        let ppos = piece.position;
+        let color = piece.white;
+        let ways = piece.ways_to_move.clone();
         if piece.white != game.white_to_move {
             println!("Not your piece dumbass!");
             return false;
         }
         if is_move_legal(game, piece, end_pos) {
             println!("Moving: {} lolada", piece.name);
-            let new_piece = Piece {
-                name: piece.name.clone(),
-                white: piece.white,
-                position: end_pos,
-                ways_to_move: piece.ways_to_move.clone(),
-            };
-            if new_piece.name.clone() == "king" {
-                if new_piece.white {
+            if piece.name.clone() == "king" {
+                if piece.white {
                     game.kings.0 = end_pos;
                 } else {
                     game.kings.1 = end_pos;
                 }
             }
-            game.pieces.insert(end_pos, new_piece);
+            game.pieces.insert(
+                end_pos,
+                Piece {
+                    name: piece.name.clone(),
+                    white: piece.white,
+                    position: end_pos,
+                    ways_to_move: piece.ways_to_move.clone(),
+                },
+            );
             game.pieces.remove(&start_pos);
-            
+            if is_in_check(&game, game.white_to_move) {
+                println!("Cand to that, youll be in check");
+
+                game.pieces.insert(
+                    end_pos,
+                    Piece {
+                        name: name,
+                        white: color,
+                        position: ppos,
+                        ways_to_move: ways,
+                    },
+                );
+
+                return false;
+            }
             if game.white_to_move {
                 game.white_to_move = false;
             } else {
@@ -439,7 +459,7 @@ fn main() {
     let mut game = init_pieces();
 
     print_board(&game);
-    
+
     loop {
         let mut init_pos: (char, i32) = ('z', -1);
         let mut end_pos: (char, i32) = ('z', -1);
@@ -468,6 +488,5 @@ fn main() {
         print_board(&game);
         let is_check = is_in_check(&game, game.white_to_move);
         println!("{}", is_check);
-        
     }
 }
