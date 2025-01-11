@@ -481,21 +481,24 @@ fn playable_pos(game: &Game, piece: &Piece) -> Vec<(char, i32)> {
 /*
 Checks if King_color is in mate
 */
-fn is_mate(game: &Game, king_color: bool) -> bool {
+fn is_mate(game: &Game, king_color: bool) -> i32 {
     for val in &game.pieces {
         if val.1.white == king_color {
             for pos in playable_pos(&game, &val.1) {
                 if is_move_legal(game, val.1, pos) {
-                    println!(
+                    /*println!(
                         "{} can move from {}{}, to {}{}",
                         val.1.name, val.1.position.0, val.1.position.1, pos.0, pos.1
-                    );
-                    return false;
+                    );*/
+                    return 0;
                 }
             }
         }
     }
-    return true;
+    if is_in_check(game, king_color) {
+        return 1;
+    }
+    return 2;
 }
 fn main() {
     println!("Game initialized!");
@@ -518,8 +521,7 @@ fn main() {
             }
             None => {
                 println!("lolada1");
-                return;
-                //continue;
+                continue;
             }
         }
         match get_user_pos() {
@@ -538,9 +540,17 @@ fn main() {
         }
 
         print_board(&game);
-        let is_mate = is_mate(&game, false);
-        println!("king is in mate = {}", is_mate);
-        let is_check = is_in_check(&game, false);
-        println!("king is in check = {}", is_check);
+
+        if is_mate(&game, game.white_to_move) == 1 {
+            println!("Game over");
+            println!("{} wins", player);
+
+            break;
+        }
+        if is_mate(&game, game.white_to_move) == 2 {
+            println!("Game over");
+            println!("Stalemate");
+            break;
+        }
     }
 }
