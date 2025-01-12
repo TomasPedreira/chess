@@ -500,6 +500,58 @@ fn is_mate(game: &Game, king_color: bool) -> i32 {
     }
     return 2;
 }
+
+fn check_draw(game: &Game) -> bool {
+    let mut white_count = [0,0,0,0,0,0]; // pawn, rook, knight, bishop, queen, king
+    let mut black_count = [0,0,0,0,0,0]; // pawn, rook, knight, bishop, queen, king
+
+    for val in &game.pieces {
+        let piece = val.1;
+        if piece.white {
+            match piece.name.as_str() {
+                "pawn" => white_count[0] += 1,
+                "rook" => white_count[1] += 1,
+                "knight" => white_count[2] += 1,
+                "bishop" => white_count[3] += 1,
+                "queen" => white_count[4] += 1,
+                "king" => white_count[5] += 1,
+                _ => {}
+            }
+        } else {
+            match piece.name.as_str() {
+                "pawn" => black_count[0] += 1,
+                "rook" => black_count[1] += 1,
+                "knight" => black_count[2] += 1,
+                "bishop" => black_count[3] += 1,
+                "queen" => black_count[4] += 1,
+                "king" => black_count[5] += 1,
+                _ => {}
+            }
+        }
+    }
+    let total_white = white_count.iter().sum::<i32>();
+    let total_black = black_count.iter().sum::<i32>();
+    if total_white == 1 && total_black == 1 {
+        return true;
+    }
+    if total_white == 2 && total_black == 1 {
+        if white_count[2] == 1 || white_count[3] == 1 {
+            return true;
+        }
+    }
+    if total_black == 2 && total_white == 1 {
+        if black_count[2] == 1 || black_count[3] == 1 {
+            return true;
+        }
+    }
+    if total_white == 2 && total_black == 2 {
+        if (white_count[2] == 1 || white_count[3] == 1) && (black_count[2] == 1 || black_count[3] == 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
 fn main() {
     println!("Game initialized!");
     let mut game = init_pieces();
@@ -550,6 +602,11 @@ fn main() {
         if is_mate(&game, game.white_to_move) == 2 {
             println!("Game over");
             println!("Stalemate");
+            break;
+        }
+        if check_draw(&game) {
+            println!("Game over");
+            println!("Draw");
             break;
         }
     }
