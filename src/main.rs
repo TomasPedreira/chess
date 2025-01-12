@@ -24,6 +24,92 @@ fn int_to_letter(num: i32) -> char {
     return ((num + 64) as u8) as char;
 }
 
+fn give_ways_to_move_by_name(name: String) -> Vec<(i32, i32, bool)> {
+    match name.as_str() {
+        "pawn" => return vec![(0, 1, false), (1, 1, false), (-1, 1, false), (0, 2, false)],
+        "rook" => return vec![(-1, 0, true), (0, -1, true), (1, 0, true), (0, 1, true)],
+        "knight" => return vec![
+            (2, 1, false),
+            (2, -1, false),
+            (-2, 1, false),
+            (-2, -1, false),
+            (1, 2, false),
+            (-1, 2, false),
+            (1, -2, false),
+            (-1, -2, false),
+        ],
+        "bishop" => return vec![(1, 1, true), (1, -1, true), (-1, 1, true), (-1, -1, true)],
+        "queen" => return vec![
+            (1, 1, true),
+            (1, -1, true),
+            (-1, 1, true),
+            (-1, -1, true),
+            (1, 0, true),
+            (-1, 0, true),
+            (0, 1, true),
+            (0, -1, true),
+        ],
+        "king" => return vec![
+            (1, 1, false),
+            (1, -1, false),
+            (-1, 1, false),
+            (-1, -1, false),
+            (1, 0, false),
+            (-1, 0, false),
+            (0, 1, false),
+            (0, -1, false),
+        ],
+        _ => return vec![],
+    }
+
+}
+
+fn create_piece_config(file_name: String) -> Vec<(String, bool, (char, i32))> {
+    let mut pieces = Vec::<(String, bool, (char, i32))>::new();
+    let file = std::fs::read_to_string(file_name).expect("lolada");
+    for line in file.lines() {
+        let mut split = line.split_whitespace();
+        let name = split.next().unwrap().to_string();
+        let color = split.next().unwrap().to_string();
+        let pos = split.next().unwrap().to_string();
+        let is_white = color == "white";
+        let pos_char = pos.chars().nth(0).unwrap();
+        let pos_int = pos.chars().nth(1).unwrap().to_string().parse::<i32>().unwrap();
+        pieces.push((name.clone(), is_white, (pos_char, pos_int)));
+    }
+    return pieces;
+}
+
+fn init_config_pieces(pieces: Vec<(String, bool, (char, i32))>) -> Game {
+    let mut piece_map = HashMap::<(char, i32), Piece>::new();
+    let mut white_king: (char, i32) = ('E', 1);
+    let mut black_king: (char, i32) = ('E', 8);
+    for piece in pieces {
+        let letter = piece.2.0.to_uppercase().nth(0).unwrap();
+        let num = piece.2.1;
+        let new_piece = Piece {
+            name: piece.0.clone(),
+            white: piece.1,
+            position: (letter, num),
+            ways_to_move: give_ways_to_move_by_name(piece.0.clone()),
+        };
+        println!("{} {} {}", new_piece.name.clone(), new_piece.position.0, new_piece.position.1);
+        if new_piece.name.clone() == "king".to_string() {
+            if new_piece.white {
+                white_king = (letter, num);
+            } else {
+                black_king = (letter, num);
+            }
+        }
+        piece_map.insert((letter, num), new_piece);
+    }
+    Game {
+        pieces: piece_map,
+        white_to_move: true,
+        kings: (white_king, black_king),
+    }
+}
+
 fn init_pieces() -> Game {
     // Create an empty board with default pieces
     let mut piece_map = HashMap::<(char, i32), Piece>::new();
@@ -432,9 +518,6 @@ fn is_in_check(game: &Game, king_color: bool) -> bool {
 
     for val in &game.pieces {
         let piece = val.1;
-        if piece.name == "king" {
-            continue;
-        }
         if piece.white == king_color {
             continue;
         }
@@ -486,10 +569,10 @@ fn is_mate(game: &Game, king_color: bool) -> i32 {
         if val.1.white == king_color {
             for pos in playable_pos(&game, &val.1) {
                 if is_move_legal(game, val.1, pos) {
-                    /*println!(
+                    println!(
                         "{} can move from {}{}, to {}{}",
                         val.1.name, val.1.position.0, val.1.position.1, pos.0, pos.1
-                    );*/
+                    );
                     return 0;
                 }
             }
@@ -552,7 +635,8 @@ fn check_draw(game: &Game) -> bool {
     return false;
 }
 
-fn main() {
+
+fn gaming(){
     println!("Game initialized!");
     let mut game = init_pieces();
 
@@ -610,4 +694,33 @@ fn main() {
             break;
         }
     }
+}
+
+fn unit_test(file: String){
+    let piece_config = create_piece_config(file);
+    println!("{}", piece_config.len());
+    let game = init_config_pieces(piece_config);
+
+    print_board(&game);
+
+    if is_mate(&game, false) == 1 {
+        println!("Game over");
+        println!("{} wins", true);
+    }
+    if is_mate(&game, false) == 2 {
+        println!("Game over");
+        println!("Stalemate");
+    }
+    if check_draw(&game) {
+        println!("Game over");
+        println!("Draw");
+    }
+    if is_in_check(&game, false) {
+        println!("Check");
+    }
+
+}
+fn main() {
+    gaming();
+    //unit_test("piece_config1.txt".to_string());
 }

@@ -1,0 +1,3 @@
+king white g6
+king black g8
+pawn white g7
