@@ -133,7 +133,7 @@ impl Game {
                 return false;
             }
             if !piece.white
-                && ((self.has_king_moved.0
+                && ((self.has_king_moved.1
                     && (letter_to_int(end_pos.column) - letter_to_int(cur_pos.column)).abs() > 1)
                     || (mov.0 < 0 && self.has_rook_moved.1 .0)
                     || (mov.0 > 0 && self.has_rook_moved.1 .1))
@@ -495,6 +495,9 @@ impl Game {
             print!("     {}     ", st);
         }
         println!();
+    }
+    pub fn reset(&mut self) {
+        *self = init_pieces();
     }
 }
 
