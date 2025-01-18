@@ -95,7 +95,7 @@ impl Game {
         let start_column: i32 = letter_to_int(current_pos.column);
         let start_row: i32 = current_pos.row;
         let value: Option<&Piece> = self.pieces.get(&(end_pos.column, end_pos.row));
-    
+
         if let Some(piece) = value {
             if &piece.white == is_white {
                 return false;
@@ -247,6 +247,196 @@ impl Game {
                 },
             )
         }
+    }
+    pub fn playable_pos(&self, piece: &Piece) -> Vec<Position> {
+        let mut pos: Vec<Position> = Vec::<Position>::new();
+        let mut cur_pos: Position = piece.position.clone();
+
+        for mov in &piece.ways_to_move {
+            if mov.2 {
+                while cur_pos.is_within_bounds() {
+                    let next_pos: Position = cur_pos.next_move(mov);
+                    // let is_last = &next_pos == &cur_pos;
+                    if self.can_make_single_move(mov, &cur_pos, &next_pos, piece, true) {
+                        pos.push(next_pos.clone());
+                    } else {
+                        break;
+                    }
+                    cur_pos = next_pos;
+                }
+            } else {
+                let next_pos = cur_pos.next_move(mov);
+                if self.can_make_single_move(mov, &cur_pos, &next_pos, piece, true) {
+                    pos.push(next_pos);
+                }
+            }
+        }
+
+        pos
+    }
+
+    pub fn is_draw(&self) -> bool {
+        let mut white_count = [0, 0, 0, 0, 0, 0]; // pawn, rook, knight, bishop, queen, king
+        let mut black_count = [0, 0, 0, 0, 0, 0]; // pawn, rook, knight, bishop, queen, king
+
+        for val in self.pieces.clone() {
+            let piece = val.1;
+            if piece.white {
+                match piece.name.as_str() {
+                    "pawn" => white_count[0] += 1,
+                    "rook" => white_count[1] += 1,
+                    "knight" => white_count[2] += 1,
+                    "bishop" => white_count[3] += 1,
+                    "queen" => white_count[4] += 1,
+                    "king" => white_count[5] += 1,
+                    _ => {}
+                }
+            } else {
+                match piece.name.as_str() {
+                    "pawn" => black_count[0] += 1,
+                    "rook" => black_count[1] += 1,
+                    "knight" => black_count[2] += 1,
+                    "bishop" => black_count[3] += 1,
+                    "queen" => black_count[4] += 1,
+                    "king" => black_count[5] += 1,
+                    _ => {}
+                }
+            }
+        }
+        let total_white = white_count.iter().sum::<i32>();
+        let total_black = black_count.iter().sum::<i32>();
+        if total_white == 1 && total_black == 1 {
+            return true;
+        }
+        if total_white == 2 && total_black == 1 && (white_count[2] == 1 || white_count[3] == 1) {
+            return true;
+        }
+        if total_black == 2 && total_white == 1 && (black_count[2] == 1 || black_count[3] == 1) {
+            return true;
+        }
+        if total_white == 2
+            && total_black == 2
+            && (white_count[2] == 1 || white_count[3] == 1)
+            && (black_count[2] == 1 || black_count[3] == 1)
+        {
+            return true;
+        }
+        return false;
+    }
+
+
+
+    /*
+    Checks if King_color is in check
+    */
+    pub fn is_in_check(&self, king_color: bool) -> bool {
+        let king: &Position;
+        if king_color {
+            king = &self.kings.0;
+        } else {
+            king = &self.kings.1;
+        }
+
+        for val in &self.pieces {
+            let piece = val.1;
+            if piece.white == king_color {
+                continue;
+            }
+            for mov in &piece.ways_to_move {
+                if mov.2 {
+                    if self.can_make_multiple_move(mov, king, piece) {
+                        return true;
+                    }
+                } else if self.can_make_single_move(mov, &piece.position, king, piece, true) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+    pub fn is_move_legal(&self, piece: &Piece, end_pos: Position) -> (bool, Position, Position) {
+        let current_pos: Position = piece.position.clone();
+        let move_coll: &Vec<(i32, i32, bool)> = &piece.ways_to_move;
+        let mut can_make: bool = false;
+        let mut can_castle: (bool, Position, Position) = (
+            false,
+            Position {
+                column: 'Z',
+                row: -1,
+            },
+            Position {
+                column: 'Z',
+                row: -1,
+            },
+        );
+        for mov in move_coll {
+            if mov.2 {
+                if self.can_make_multiple_move( mov, &end_pos, piece) {
+                    can_make = true;
+                    if piece.name == *"king"
+                        && (letter_to_int(piece.position.column) - letter_to_int(end_pos.column)).abs()
+                            >= 2
+                    {
+                        can_castle = self.check_can_castle( piece, mov);
+                    }
+                    break;
+                }
+            } else if self.can_make_single_move( mov, &current_pos, &end_pos, piece, true) {
+                can_make = true;
+                break;
+            }
+        }
+        if !can_make {
+            return (
+                false,
+                Position {
+                    column: can_castle.1.column,
+                    row: can_castle.1.row,
+                },
+                Position {
+                    column: can_castle.2.column,
+                    row: can_castle.2.row,
+                },
+            );
+        }
+        let mut copy_game: Game = self.clone();
+        let copy_piece: Piece = piece.clone();
+        let color: bool = copy_piece.white;
+    
+        if can_castle.0 {
+            copy_game.update_piece(
+                self.pieces
+                    .get(&(can_castle.1.column, can_castle.1.row))
+                    .unwrap(),
+                end_pos.clone(),
+            );
+        }
+        copy_game = copy_game.clone();
+        copy_game.update_piece(&copy_piece, end_pos);
+    
+        if copy_game.is_in_check( color) {
+            // println!("Can't move into check");
+            return (false, can_castle.1, can_castle.2);
+        }
+        //println!("moved piece from {}{} to {}{}, color of king = {}", copy_piece.position.0, copy_piece.position.1, end_pos.0, end_pos.1, color);
+        (true, can_castle.1, can_castle.2)
+    }
+
+    pub fn is_mate(&self) -> i32 {
+        for val in &self.pieces {
+            if val.1.white == self.white_to_move {
+                for pos in self.playable_pos(&val.1) {
+                    let res = self.is_move_legal(&val.1, pos);
+                    if res.0 {
+                        return 0;
+                    }
+                }
+            }
+        }
+        if self.is_in_check(self.white_to_move) {
+            return 1;
+        }
+        2
     }
 }
 
