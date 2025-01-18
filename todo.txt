@@ -1,0 +1,16 @@
+TODO:
+
+- Ai to play game:
+    - How to include other files; DONE;
+    - Decide what algo to use:
+        - Minimax;
+        - other idk;
+
+
+- Server to run game on
+
+
+- User interface:
+    - Decide what lang to use;
+
+
