@@ -1,452 +1,23 @@
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::io;
 use std::process::Command;
 
-mod classes;
-use classes::{Game, Piece, Position};
+mod aux_func;
+mod game;
+mod piece;
+mod position;
+use aux_func::{int_to_letter, letter_to_int};
+use game::{init_pieces, Game};
+use piece::Piece;
+use position::Position;
 
-fn letter_to_int(ch: char) -> i32 {
-    ch as i32 - 64
-}
 
-fn int_to_letter(num: i32) -> char {
-    ((num + 64) as u8) as char
-}
-
-fn init_pieces() -> Game {
-    // Create an empty board with default pieces
-    let mut piece_map: HashMap<(char, i32), Piece> = HashMap::<(char, i32), Piece>::new();
-
-    for i in 1..=8 {
-        // White pawns init: from 'A' to 'H' in row 2 (index 1)
-        let white_pawn: Piece = Piece {
-            name: "pawn".to_string(),
-            white: true,
-            position: Position {
-                column: int_to_letter(i),
-                row: 2,
-            },
-            ways_to_move: vec![(0, 1, false), (1, 1, false), (-1, 1, false), (0, 2, false)],
-        };
-        piece_map.insert((int_to_letter(i), 2), white_pawn);
-
-        // Black pawns init: from 'A' to 'H' in row 7 (index 6)
-        let black_pawn: Piece = Piece {
-            name: "pawn".to_string(),
-            white: false,
-            position: Position {
-                column: int_to_letter(i),
-                row: 7,
-            },
-            ways_to_move: vec![
-                (0, -1, false),
-                (-1, -1, false),
-                (1, -1, false),
-                (0, -1, true),
-            ],
-        };
-        piece_map.insert((int_to_letter(i), 7), black_pawn);
-
-        if i == 1 || i == 8 {
-            // White rooks init: from 'A' to 'H' in row 1 (index 0)
-            let white_rook: Piece = Piece {
-                name: "rook".to_string(),
-                white: true,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 1,
-                },
-                ways_to_move: vec![(-1, 0, true), (0, -1, true), (1, 0, true), (0, 1, true)],
-            };
-            piece_map.insert((int_to_letter(i), 1), white_rook);
-
-            // Black rooks init: from 'A' to 'H' in row 8 (index 7)
-            let black_rook: Piece = Piece {
-                name: "rook".to_string(),
-                white: false,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 8,
-                },
-                ways_to_move: vec![(-1, 0, true), (0, -1, true), (1, 0, true), (0, 1, true)],
-            };
-            piece_map.insert((int_to_letter(i), 8), black_rook);
-        } else if i == 2 || i == 7 {
-            // White knights init: from 'A' to 'H' in row 1 (index 0)
-            let white_knight: Piece = Piece {
-                name: "knight".to_string(),
-                white: true,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 1,
-                },
-                ways_to_move: vec![
-                    (2, 1, false),
-                    (2, -1, false),
-                    (-2, 1, false),
-                    (-2, -1, false),
-                    (1, 2, false),
-                    (-1, 2, false),
-                    (1, -2, false),
-                    (-1, -2, false),
-                ],
-            };
-            piece_map.insert((int_to_letter(i), 1), white_knight);
-
-            // Black knights init: from 'A' to 'H' in row 8 (index 7)
-            let black_knight: Piece = Piece {
-                name: "knight".to_string(),
-                white: false,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 8,
-                },
-                ways_to_move: vec![
-                    (2, 1, false),
-                    (2, -1, false),
-                    (-2, 1, false),
-                    (-2, -1, false),
-                    (1, 2, false),
-                    (-1, 2, false),
-                    (1, -2, false),
-                    (-1, -2, false),
-                ],
-            };
-            piece_map.insert((int_to_letter(i), 8), black_knight);
-        } else if i == 3 || i == 6 {
-            // White bishops init: from 'A' to 'H' in row 1 (index 0)
-            let white_bishop: Piece = Piece {
-                name: "bishop".to_string(),
-                white: true,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 1,
-                },
-                ways_to_move: vec![(1, 1, true), (1, -1, true), (-1, 1, true), (-1, -1, true)],
-            };
-            piece_map.insert((int_to_letter(i), 1), white_bishop);
-
-            // Black bishops init: from 'A' to 'H' in row 8 (index 7)
-            let black_bishop: Piece = Piece {
-                name: "bishop".to_string(),
-                white: false,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 8,
-                },
-                ways_to_move: vec![(1, 1, true), (1, -1, true), (-1, 1, true), (-1, -1, true)],
-            };
-            piece_map.insert((int_to_letter(i), 8), black_bishop);
-        } else if i == 5 {
-            // White king init: from 'A' to 'H' in row 1 (index 0)
-            let white_king: Piece = Piece {
-                name: "king".to_string(),
-                white: true,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 1,
-                },
-                ways_to_move: vec![
-                    (1, 1, false),
-                    (1, -1, false),
-                    (-1, 1, false),
-                    (-1, -1, false),
-                    (1, 0, true),
-                    (-1, 0, true),
-                    (0, 1, false),
-                    (0, -1, false),
-                ],
-            };
-            piece_map.insert((int_to_letter(i), 1), white_king);
-            // Black king init: from 'A' to 'H' in row 8 (index 7)
-            let black_king: Piece = Piece {
-                name: "king".to_string(),
-                white: false,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 8,
-                },
-                ways_to_move: vec![
-                    (1, 1, false),
-                    (1, -1, false),
-                    (-1, 1, false),
-                    (-1, -1, false),
-                    (1, 0, true),
-                    (-1, 0, true),
-                    (0, 1, false),
-                    (0, -1, false),
-                ],
-            };
-            piece_map.insert((int_to_letter(i), 8), black_king);
-        } else {
-            // White queen init: from 'A' to 'H' in row 1 (index 0)
-            let white_queen: Piece = Piece {
-                name: "queen".to_string(),
-                white: true,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 1,
-                },
-                ways_to_move: vec![
-                    (1, 1, true),
-                    (1, -1, true),
-                    (-1, 1, true),
-                    (-1, -1, true),
-                    (1, 0, true),
-                    (-1, 0, true),
-                    (0, 1, true),
-                    (0, -1, true),
-                ],
-            };
-            piece_map.insert((int_to_letter(i), 1), white_queen);
-
-            // Black queen init: from 'A' to 'H' in row 8 (index 7)
-            let black_queen: Piece = Piece {
-                name: "queen".to_string(),
-                white: false,
-                position: Position {
-                    column: int_to_letter(i),
-                    row: 8,
-                },
-                ways_to_move: vec![
-                    (1, 1, true),
-                    (1, -1, true),
-                    (-1, 1, true),
-                    (-1, -1, true),
-                    (1, 0, true),
-                    (-1, 0, true),
-                    (0, 1, true),
-                    (0, -1, true),
-                ],
-            };
-            piece_map.insert((int_to_letter(i), 8), black_queen);
-        }
-    }
-    Game {
-        pieces: piece_map,
-        white_to_move: true,
-        kings: (
-            Position {
-                column: 'E',
-                row: 1,
-            },
-            Position {
-                column: 'E',
-                row: 8,
-            },
-        ),
-        has_king_moved: (false, false),
-        has_rook_moved: ((false, false), (false, false)),
-    }
-}
-
-fn is_within_bounds(pos: &Position) -> bool {
-    let col: i32 = letter_to_int(pos.column);
-    let row: i32 = pos.row;
-
-    col < 9 && col > 0 && row < 9 && row > 0
-}
-
-fn can_make_single_move(
-    game: &Game,
-    mov: &(i32, i32, bool),
-    current_pos: &Position,
-    end_pos: &Position,
-    piece: &Piece,
-    is_last: bool,
-) -> bool {
-    let is_white = &piece.white;
-    let is_pawn = piece.name == "pawn".to_string();
-    if !is_within_bounds(&end_pos) {
-        return false;
-    }
-    if is_pawn && mov.1.abs() == 2 {
-        if *is_white && current_pos.row != 2 {
-            return false;
-        }
-        if !*is_white && current_pos.row != 7 {
-            return false;
-        }
-    }
-    let end_row: i32 = end_pos.row;
-    let end_column: i32 = letter_to_int(end_pos.column);
-    let start_column: i32 = letter_to_int(current_pos.column);
-    let start_row: i32 = current_pos.row;
-    let value: Option<&Piece> = game.pieces.get(&(end_pos.column, end_pos.row));
-
-    if let Some(piece) = value {
-        if &piece.white == is_white {
-            return false;
-        } else if !is_last {
-            return false;
-        }
-        if is_pawn && (mov.0.abs() != mov.1.abs()) {
-            return false;
-        }
-    } else if is_pawn && (mov.0.abs() == mov.1.abs()) {
-        return false;
-    }
-    if end_column - start_column != mov.0 || end_row - start_row != mov.1 {
-        return false;
-    }
-    true
-}
-
-fn next_move(mov: &(i32, i32, bool), current_pos: &Position) -> Position {
-    let next_col = letter_to_int(current_pos.column) + mov.0;
-    let next_row = current_pos.row + mov.1;
-
-    Position {
-        column: int_to_letter(next_col),
-        row: next_row,
-    }
-}
-
-fn can_make_multiple_move(
-    game: &Game,
-    mov: &(i32, i32, bool),
-    end_pos: &Position,
-    piece: &Piece,
-) -> bool {
-    let mut cur_pos: Position = piece.position.clone();
-
-    if piece.name == "king".to_string() {
-        if piece.white
-            && ((game.has_king_moved.0
-                && (letter_to_int(end_pos.column) - letter_to_int(cur_pos.column)).abs() > 1)
-                || (mov.0 < 0 && game.has_rook_moved.0 .0)
-                || (mov.0 > 0 && game.has_rook_moved.0 .1))
-        {
-            println!("King has moved");
-            return false;
-        }
-        if !piece.white
-            && ((game.has_king_moved.0
-                && (letter_to_int(end_pos.column) - letter_to_int(cur_pos.column)).abs() > 1)
-                || (mov.0 < 0 && game.has_rook_moved.1 .0)
-                || (mov.0 > 0 && game.has_rook_moved.1 .1))
-        {
-            println!("King has moved");
-            return false;
-        }
-    }
-    let mut count: i32 = 0;
-
-    while is_within_bounds(&cur_pos) {
-        let next_pos: Position = next_move(mov, &cur_pos);
-        let is_last = next_pos.equals(end_pos);
-        if !can_make_single_move(game, mov, &cur_pos, &next_pos, piece, is_last) {
-            break;
-        }
-        if &next_pos == end_pos {
-            return true;
-        }
-        if piece.name == "king".to_string() {
-            count += 1;
-            if count == 2 {
-                return &next_pos == end_pos;
-            }
-        }
-        cur_pos = next_pos;
-    }
-    false
-}
-
-fn check_can_castle(
-    game: &Game,
-    piece: &Piece,
-    mov: &(i32, i32, bool),
-) -> (bool, Position, Position) {
-    if piece.white {
-        if mov.0 > 0 {
-            (
-                can_make_multiple_move(
-                    game,
-                    &(1, 0, true),
-                    &Position {
-                        column: 'F',
-                        row: 1,
-                    },
-                    game.pieces.get(&('H', 1)).unwrap(),
-                ),
-                Position {
-                    column: 'F',
-                    row: 1,
-                },
-                Position {
-                    column: 'H',
-                    row: 1,
-                },
-            )
-        } else {
-            (
-                can_make_multiple_move(
-                    game,
-                    &(-1, 0, true),
-                    &Position {
-                        column: 'D',
-                        row: 1,
-                    },
-                    game.pieces.get(&('A', 1)).unwrap(),
-                ),
-                Position {
-                    column: 'D',
-                    row: 1,
-                },
-                Position {
-                    column: 'A',
-                    row: 1,
-                },
-            )
-        }
-    } else if mov.0 > 0 {
-        (
-            can_make_multiple_move(
-                game,
-                &(1, 0, true),
-                &Position {
-                    column: 'F',
-                    row: 8,
-                },
-                game.pieces.get(&('H', 8)).unwrap(),
-            ),
-            Position {
-                column: 'F',
-                row: 8,
-            },
-            Position {
-                column: 'H',
-                row: 8,
-            },
-        )
-    } else {
-        (
-            can_make_multiple_move(
-                game,
-                &(-1, 0, true),
-                &Position {
-                    column: 'D',
-                    row: 8,
-                },
-                game.pieces.get(&('A', 8)).unwrap(),
-            ),
-            Position {
-                column: 'D',
-                row: 8,
-            },
-            Position {
-                column: 'A',
-                row: 8,
-            },
-        )
-    }
-}
 
 // TODO implement casteling
 fn is_move_legal(game: &Game, piece: &Piece, end_pos: Position) -> (bool, Position, Position) {
     let current_pos: Position = piece.position.clone();
     let move_coll: &Vec<(i32, i32, bool)> = &piece.ways_to_move;
-    let mut can_make = false;
+    let mut can_make: bool = false;
     let mut can_castle: (bool, Position, Position) = (
         false,
         Position {
@@ -460,17 +31,17 @@ fn is_move_legal(game: &Game, piece: &Piece, end_pos: Position) -> (bool, Positi
     );
     for mov in move_coll {
         if mov.2 {
-            if can_make_multiple_move(game, mov, &end_pos, piece) {
+            if game.can_make_multiple_move( mov, &end_pos, piece) {
                 can_make = true;
                 if piece.name == *"king"
                     && (letter_to_int(piece.position.column) - letter_to_int(end_pos.column)).abs()
                         >= 2
                 {
-                    can_castle = check_can_castle(game, piece, mov);
+                    can_castle = game.check_can_castle( piece, mov);
                 }
                 break;
             }
-        } else if can_make_single_move(game, mov, &current_pos, &end_pos, piece, true) {
+        } else if game.can_make_single_move( mov, &current_pos, &end_pos, piece, true) {
             can_make = true;
             break;
         }
@@ -488,20 +59,20 @@ fn is_move_legal(game: &Game, piece: &Piece, end_pos: Position) -> (bool, Positi
             },
         );
     }
-    let mut copy_game = game.clone();
-    let copy_piece = piece.clone();
-    let color = copy_piece.white;
+    let mut copy_game: Game = game.clone();
+    let copy_piece: Piece = piece.clone();
+    let color: bool = copy_piece.white;
 
     if can_castle.0 {
-        update_piece(
-            &mut copy_game,
+        copy_game.update_piece(
             game.pieces
                 .get(&(can_castle.1.column, can_castle.1.row))
                 .unwrap(),
             end_pos.clone(),
         );
     }
-    update_piece(&mut copy_game, &copy_piece, end_pos);
+    copy_game = copy_game.clone();
+    copy_game.update_piece(&copy_piece, end_pos);
 
     if is_in_check(&copy_game, color) {
         // println!("Can't move into check");
@@ -520,12 +91,12 @@ fn make_move(game: &mut Game, start_pos: Position, end_pos: Position) -> bool {
         }
         let res: (bool, Position, Position) = is_move_legal(game, piece, end_pos.clone());
         if res.0 {
-            update_piece(game, piece, end_pos);
+            game.update_piece(piece, end_pos);
             if res.1.column != 'Z' {
                 println!("castling {}{}", res.1.column, res.1.row);
                 let castle_piece: Piece =
                     game.pieces.get(&(res.2.column, res.2.row)).unwrap().clone();
-                update_piece(game, &castle_piece, res.1);
+                game.update_piece(&castle_piece, res.1);
             }
             game.white_to_move = !game.white_to_move;
             return true;
@@ -535,61 +106,6 @@ fn make_move(game: &mut Game, start_pos: Position, end_pos: Position) -> bool {
     }
     println!("no piece found");
     false
-}
-fn update_piece(game: &mut Game, piece: &Piece, pos: Position) {
-    let init_pos: Position = piece.position.clone();
-    if piece.name.clone() == *"king" {
-        if piece.white {
-            game.kings.0 = pos.clone();
-            game.has_king_moved.0 = true;
-        } else {
-            game.kings.1 = pos.clone();
-            game.has_king_moved.1 = true;
-        }
-    }
-    if piece.name.clone() == *"rook" {
-        if piece.white
-            && init_pos.equals(&Position {
-                column: 'A',
-                row: 1,
-            })
-        {
-            game.has_rook_moved.0 .0 = true;
-        } else if piece.white
-            && init_pos.equals(&Position {
-                column: 'H',
-                row: 1,
-            })
-        {
-            game.has_rook_moved.0 .1 = true;
-        } else if !piece.white
-            && init_pos.equals(&Position {
-                column: 'A',
-                row: 8,
-            })
-        {
-            game.has_rook_moved.1 .0 = true;
-        } else if !piece.white
-            && init_pos.equals(&Position {
-                column: 'H',
-                row: 8,
-            })
-        {
-            game.has_rook_moved.1 .1 = true;
-        }
-    }
-    game.pieces
-        .remove(&(piece.position.column, piece.position.row));
-    game.pieces.insert(
-        (pos.column, pos.row),
-        Piece {
-            name: piece.name.clone(),
-            white: piece.white,
-            position: pos,
-            ways_to_move: piece.ways_to_move.clone(),
-        },
-    );
-    game.pieces.remove(&(init_pos.column, init_pos.row));
 }
 
 fn print_board(game: &Game) {
@@ -660,10 +176,10 @@ fn is_in_check(game: &Game, king_color: bool) -> bool {
         }
         for mov in &piece.ways_to_move {
             if mov.2 {
-                if can_make_multiple_move(game, mov, king, piece) {
+                if game.can_make_multiple_move(mov, king, piece) {
                     return true;
                 }
-            } else if can_make_single_move(game, mov, &piece.position, king, piece, true) {
+            } else if game.can_make_single_move(mov, &piece.position, king, piece, true) {
                 return true;
             }
         }
@@ -677,10 +193,10 @@ fn playable_pos(game: &Game, piece: &Piece) -> Vec<Position> {
 
     for mov in &piece.ways_to_move {
         if mov.2 {
-            while is_within_bounds(&cur_pos) {
-                let next_pos: Position = next_move(mov, &cur_pos);
+            while cur_pos.is_within_bounds() {
+                let next_pos: Position = cur_pos.next_move(mov);
                 // let is_last = &next_pos == &cur_pos;
-                if can_make_single_move(game, mov, &cur_pos, &next_pos, piece, true) {
+                if game.can_make_single_move(mov, &cur_pos, &next_pos, piece, true) {
                     pos.push(next_pos.clone());
                 } else {
                     break;
@@ -688,8 +204,8 @@ fn playable_pos(game: &Game, piece: &Piece) -> Vec<Position> {
                 cur_pos = next_pos;
             }
         } else {
-            let next_pos = next_move(mov, &cur_pos);
-            if can_make_single_move(game, mov, &cur_pos, &next_pos, piece, true) {
+            let next_pos = cur_pos.next_move(mov);
+            if game.can_make_single_move(mov, &cur_pos, &next_pos, piece, true) {
                 pos.push(next_pos);
             }
         }

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chessboard">
+        <!-- Dynamically create the chessboard squares -->
+        <script>
+            const chessboard = document.querySelector('.chessboard');
+            const rows = 8;
+            const cols = 8;
+            for (let row = rows; row >= 1; row--) {
+                for (let col = 0; col < cols; col++) {
+                    const square = document.createElement('div');
+                    const isDark = (row + col) % 2 === 1;
+                    square.className = `square ${isDark ? 'dark' : 'light'}`;
+                    square.dataset.position = `${String.fromCharCode(97 + col)}${row}`; // Example: 'a1', 'b2', etc.
+                    chessboard.appendChild(square);
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>
