@@ -321,7 +321,7 @@ impl Game {
         {
             return true;
         }
-        return false;
+        false
     }
 
 
@@ -425,8 +425,8 @@ impl Game {
     pub fn is_mate(&self) -> i32 {
         for val in &self.pieces {
             if val.1.white == self.white_to_move {
-                for pos in self.playable_pos(&val.1) {
-                    let res = self.is_move_legal(&val.1, pos);
+                for pos in self.playable_pos(val.1) {
+                    let res = self.is_move_legal(val.1, pos);
                     if res.0 {
                         return 0;
                     }
@@ -437,6 +437,64 @@ impl Game {
             return 1;
         }
         2
+    }
+    pub fn make_move(&mut self, start_pos: Position, end_pos: Position) -> bool {
+        let cloned_game: Game = self.clone();
+        let moving_piece: Option<&Piece> = cloned_game.pieces.get(&(start_pos.column, start_pos.row));
+        if let Some(piece) = moving_piece {
+            if piece.white != self.white_to_move {
+                return false;
+            }
+            let res: (bool, Position, Position) = self.is_move_legal( piece, end_pos.clone());
+            if res.0 {
+                self.update_piece(piece, end_pos);
+                if res.1.column != 'Z' {
+                    println!("castling {}{}", res.1.column, res.1.row);
+                    let castle_piece: Piece =
+                    self.pieces.get(&(res.2.column, res.2.row)).unwrap().clone();
+                    self.update_piece(&castle_piece, res.1);
+                }
+                self.white_to_move = !self.white_to_move;
+                return true;
+            } else {
+                return false;
+            }
+        }
+        println!("no piece found");
+        false
+    }
+    pub fn print_board(&self) {
+        for i in (1..=8).rev() {
+            for j in 1..=8 {
+                let key: i32 = i;
+                let value: Option<&Piece> = self.pieces.get(&(int_to_letter(j), key));
+                if let Some(piece) = value {
+                    let padding: f32 = 10.0 - piece.name.len() as f32;
+                    let left_pd: i32 = (padding / 2.0).floor() as i32;
+                    let right_pd: i32 = (padding / 2.0).ceil() as i32;
+                    let mut color: String = "b".to_string();
+                    if piece.white {
+                        color = "w".to_string();
+                    }
+                    print!(
+                        "{}{}{}{}",
+                        " ".repeat(left_pd as usize),
+                        color,
+                        piece.name,
+                        " ".repeat(right_pd as usize)
+                    );
+                } else {
+                    let st: String = ".".to_string();
+                    print!("     {}     ", st);
+                }
+            }
+            println!("{}\n", i);
+        }
+        for i in 1..=8 {
+            let st = int_to_letter(i);
+            print!("     {}     ", st);
+        }
+        println!();
     }
 }
 
