@@ -1,4 +1,7 @@
 const chessboard = document.querySelector('.chessboard');
+const reset_button = document.querySelector('.reset');
+const white_button = document.querySelector('.choose_white');
+const black_button = document.querySelector('.choose_black');
 const rows = 8;
 const cols = 8;
 
@@ -7,6 +10,9 @@ let current_chosen = 'z1';
 let start_pos = 'z1';
 let end_pos = 'z1';
 let board_state = {};
+let chosen_color = "none";
+let chosen_players = ["none","none"];
+let player_to_move = "white";
 
 // Define the initial positions of the pieces
 const initialPositions = {
@@ -15,7 +21,6 @@ const initialPositions = {
     'a8': '♜', 'b8': '♞', 'c8': '♝', 'd8': '♛', 'e8': '♚', 'f8': '♝', 'g8': '♞', 'h8': '♜', // Black major pieces
     'a7': '♟', 'b7': '♟', 'c7': '♟', 'd7': '♟', 'e7': '♟', 'f7': '♟', 'g7': '♟', 'h7': '♟', // Black pawns
 };
-
 // function that takes in wpawn and returns the symbol for the piece 
 function get_piece_symbol(piece){
     switch(piece){
@@ -58,9 +63,6 @@ function get_piece_symbol(piece){
     }
     return piece_symbol;
 }
-
-
-
 //make function parsing through json looking for pices 'A1':'wpawn' and return a configuration of the board
 function parse_board_state(data){
     let board_state = {};
@@ -72,18 +74,21 @@ function parse_board_state(data){
     return board_state;
 }
 
-async function get_board_state(){
-    const response = await fetch('http://localhost:8080/boardstate');
+async function get_board_state() {
+    const url = 'http://127.0.0.1:8080/boardstate';
+    const response = await fetch(url);
+    console.log("Fetching from:", url);
     const data = await response.json();
     console.log(data);
     return data;
-} 
+}
 async function reset_board(){
-    const response = await fetch('http://localhost:8080/reset');
-    await response;
+    const response = await fetch('http://127.0.0.1:8080/reset');
+    return await response.json();
 } 
+
 async function move_piece(start_pos, end_pos){
-    const response = await fetch('http://localhost:8080/movepiece', {
+    const response = await fetch('http://127.0.0.1:8080/movepiece', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -125,17 +130,12 @@ function draw_chessboard( board_state ){
 }
 
 // Add the click event listener to the square
-addEventListener('click', async (event) => {
-    if (event.target.tagName === 'BUTTON') {
-        await reset_board();
-        update_board_state();
-        return;
-    }
+chessboard.addEventListener('click', async (event) => {
 
     const selectedSquare = event.target;
     const selectedPiece = selectedSquare.querySelector('.piece');
     if (click_count == 0) {
-        if (selectedPiece && selectedSquare.dataset.position != undefined) {
+        if (selectedPiece) {
             selectedSquare.classList.add('selected');
             console.log(`Selected piece: ${selectedPiece.textContent}, in ${selectedSquare.dataset.position}`);
             start_pos = selectedSquare.dataset.position;
@@ -144,17 +144,14 @@ addEventListener('click', async (event) => {
             click_count = 0;
         }
     } else if (click_count == 1) {
-        if (selectedSquare.dataset.position != undefined) {
-            end_pos = selectedSquare.dataset.position;
-            console.log(`Move from ${start_pos} to ${end_pos}`);
-            const res = await move_piece(start_pos, end_pos);
-            if (res.is_valid == "true") {
-                console.log("Valid move");
-                update_board_state();
-                click_count++;
-            }
-        } else {
-            console.log("Invalid move");
+        end_pos = selectedSquare.dataset.position;
+        console.log(`Move from ${start_pos} to ${end_pos}`);
+        const data = await move_piece(start_pos, end_pos);
+        if (data.is_valid == "true") {
+            console.log("Valid move");
+            const board_state = parse_board_state(data);
+            update_board_state(board_state);
+            click_count++;
         }
         const prev_square = document.querySelector(`.square[data-position=${start_pos}]`);
         prev_square.classList.remove('selected');
@@ -163,21 +160,17 @@ addEventListener('click', async (event) => {
     
 });
 
-async function update_board_state() {
-    console.log("Updating board state");
-    const board_state = await get_board_state();
-    const parsed_board_state = parse_board_state(board_state);
-    
+async function update_board_state(board_state) {
     // Remove all existing pieces
     const pieces = document.querySelectorAll('.piece');
     pieces.forEach(piece => piece.remove());
     
     // Add updated pieces
-    for (let position in parsed_board_state) {
+    for (let position in board_state) {
         const square = document.querySelector(`.square[data-position=${position}]`);
         const newPiece = document.createElement('span');
-        newPiece.textContent = get_piece_symbol(parsed_board_state[position]);
-        newPiece.className = `piece ${parsed_board_state[position].charAt(0) === 'w' ? 'white' : 'black'}`;
+        newPiece.textContent = get_piece_symbol(board_state[position]);
+        newPiece.className = `piece ${board_state[position].charAt(0) === 'w' ? 'white' : 'black'}`;
         square.appendChild(newPiece);
     }
 }
@@ -194,5 +187,36 @@ async function initializeBoard() {
     }
 }
 
+reset_button.addEventListener('click', handle_reset);
+white_button.addEventListener('click', handle_white);
+black_button.addEventListener('click', handle_black);
+async function handle_reset() {
+    const data = await reset_board();
+    const board_state = parse_board_state(data);
+    update_board_state(board_state);
+    player_to_move = "white";
+}
+async function handle_white() {
+    const response = await fetch('http://127.0.0.1:8080/white');
+    const data = await response.json();
+    if (data.status == "taken"){
+        console.log("White is taken");
+    }else{
+        console.log("White is available");
+        chosen_color = "white";
+    }
+}
+async function handle_black() {
+    const response = await fetch('http://127.0.0.1:8080/black');
+    const data = await response.json();
+    if (data.status == "taken"){
+        console.log("Black is taken");
+    }else{
+        console.log("Black is available");
+        chosen_color = "black";
+    }
+}
+
+console.log("Initializing board");
 initializeBoard();
 

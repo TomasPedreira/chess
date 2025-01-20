@@ -7,10 +7,15 @@ TODO:
         - other idk;
 
 
-- Server to run game on
+- Server to run game on:
+    - Need to make ws;
+    - Make so only 2 players join;
+    
 
 
 - User interface:
-    - Decide what lang to use;
+    - Decide what lang to use; DONE;
+    - Rset button; DONE;
+    - Make it only for 1 player;
 
 
