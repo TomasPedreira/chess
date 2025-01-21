@@ -2,8 +2,14 @@ const chessboard = document.querySelector('.chessboard');
 const reset_button = document.querySelector('.reset');
 const white_button = document.querySelector('.choose_white');
 const black_button = document.querySelector('.choose_black');
+const white_text = document.querySelector('.wtext');
+const black_text = document.querySelector('.btext');
+const name_form = document.querySelector('.name_form');
 const rows = 8;
 const cols = 8;
+let username = "johnDoe";
+// const dom = 'http://127.0.0.1:8080/'
+const dom = 'http://192.168.0.20:8080/'
 
 let click_count = 0;
 let current_chosen = 'z1';
@@ -75,20 +81,42 @@ function parse_board_state(data){
 }
 
 async function get_board_state() {
-    const url = 'http://127.0.0.1:8080/boardstate';
+    const url = dom + 'boardstate';
     const response = await fetch(url);
     console.log("Fetching from:", url);
     const data = await response.json();
     console.log(data);
+    if (data.to_move=="b"){
+        player_to_move="black";
+    }else{
+        player_to_move="white";
+    }
+    if (data.wchosen!="noone"){
+        chosen_players[0] = "white";
+        white_text.textContent = "White: "+data.wchosen;
+    }else{
+        chosen_players[0] = "none";
+        white_text.textContent = "White: Available";
+    }
+    if (data.bchosen!="noone"){
+        chosen_players[1] = "black";
+        black_text.textContent = "Black: " + data.bchosen;
+    }else{
+        chosen_players[1] = "none";
+        black_text.textContent = "Black: Available";
+    }
     return data;
 }
 async function reset_board(){
-    const response = await fetch('http://127.0.0.1:8080/reset');
+    username = "johnDoe";
+    chosen_color = "none";
+    chosen_players = ["none","none"];  
+    const response = await fetch(dom + 'reset');
     return await response.json();
 } 
 
 async function move_piece(start_pos, end_pos){
-    const response = await fetch('http://127.0.0.1:8080/movepiece', {
+    const response = await fetch(dom + 'movepiece', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -134,6 +162,9 @@ chessboard.addEventListener('click', async (event) => {
 
     const selectedSquare = event.target;
     const selectedPiece = selectedSquare.querySelector('.piece');
+    if (player_to_move != chosen_color){
+        return;
+    }
     if (click_count == 0) {
         if (selectedPiece) {
             selectedSquare.classList.add('selected');
@@ -151,6 +182,11 @@ chessboard.addEventListener('click', async (event) => {
             console.log("Valid move");
             const board_state = parse_board_state(data);
             update_board_state(board_state);
+            if (player_to_move == "white"){
+                player_to_move = "black";
+            }else{
+                player_to_move = "white";
+            }
             click_count++;
         }
         const prev_square = document.querySelector(`.square[data-position=${start_pos}]`);
@@ -197,7 +233,16 @@ async function handle_reset() {
     player_to_move = "white";
 }
 async function handle_white() {
-    const response = await fetch('http://127.0.0.1:8080/white');
+    if (chosen_players[0] != "none"){
+        return;
+    }
+    const response = await fetch(dom + 'white', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({name: username, color: "white"})
+    });
     const data = await response.json();
     if (data.status == "taken"){
         console.log("White is taken");
@@ -205,9 +250,21 @@ async function handle_white() {
         console.log("White is available");
         chosen_color = "white";
     }
+    const board_state_data = await get_board_state();
+    const board_state = parse_board_state(board_state_data);
+    update_board_state(board_state);
 }
 async function handle_black() {
-    const response = await fetch('http://127.0.0.1:8080/black');
+    if (chosen_players[1] != "none"){
+        return;
+    }
+    const response = await fetch(dom + 'black', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({name: username, color: "black"})
+    });
     const data = await response.json();
     if (data.status == "taken"){
         console.log("Black is taken");
@@ -215,6 +272,23 @@ async function handle_black() {
         console.log("Black is available");
         chosen_color = "black";
     }
+    const board_state_data = await get_board_state();
+    const board_state = parse_board_state(board_state_data);
+    update_board_state(board_state);
+}
+//add timer to execute getBoardstate()
+
+async function timed_update()
+{
+    const board_state_data = await get_board_state();
+    const board_state = parse_board_state(board_state_data);
+    update_board_state(board_state);
+}
+setInterval(timed_update, 1000);
+
+function handle_name(){
+    username = document.getElementById('player').value;
+    console.log(username);
 }
 
 console.log("Initializing board");

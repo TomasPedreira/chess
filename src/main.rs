@@ -26,11 +26,16 @@ struct MoveRequest {
     start_pos: String,
     end_pos: String,
 }
+#[derive(Deserialize, Debug)]
+struct ColorRequest {
+    name: String,
+    color: String,
+}
 
 #[derive(Clone)]
 struct Players {
-    white: bool,
-    black: bool,
+    white: String,
+    black: String,
 }
 
 fn get_user_pos() -> Option<(char, i32)> {
@@ -127,8 +132,11 @@ async fn reset(
     game: web::Data<Arc<Mutex<Game>>>,
     players: web::Data<Arc<Mutex<Players>>>,
 ) -> impl Responder {
+    println!("Received request in /reset");
     let mut game: std::sync::MutexGuard<'_, Game> = game.lock().unwrap();
-    let players: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
+    let mut players: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
+    players.white = "noone".to_string();
+    players.black = "noone".to_string();
     game.reset();
     let mut board: HashMap<String, String> = HashMap::new();
 
@@ -151,22 +159,8 @@ async fn reset(
             "b".to_string()
         },
     );
-    board.insert(
-        "bchosen".to_string(),
-        if players.black {
-            "1".to_string()
-        } else {
-            "0".to_string()
-        },
-    );
-    board.insert(
-        "wchosen".to_string(),
-        if players.white {
-            "1".to_string()
-        } else {
-            "0".to_string()
-        },
-    );
+    board.insert("bchosen".to_string(), players.black.clone());
+    board.insert("wchosen".to_string(), players.white.clone());
     HttpResponse::Ok().json(board)
 }
 
@@ -216,22 +210,8 @@ async fn move_piece(
             "b".to_string()
         },
     );
-    response.insert(
-        "bchosen".to_string(),
-        if players.black {
-            "1".to_string()
-        } else {
-            "0".to_string()
-        },
-    );
-    response.insert(
-        "wchosen".to_string(),
-        if players.white {
-            "1".to_string()
-        } else {
-            "0".to_string()
-        },
-    );
+    response.insert("bchosen".to_string(), players.black.clone());
+    response.insert("wchosen".to_string(), players.white.clone());
     HttpResponse::Ok().json(response)
 }
 
@@ -264,22 +244,8 @@ async fn game_to_json(
             "b".to_string()
         },
     );
-    board.insert(
-        "bchosen".to_string(),
-        if players.black {
-            "1".to_string()
-        } else {
-            "0".to_string()
-        },
-    );
-    board.insert(
-        "wchosen".to_string(),
-        if players.white {
-            "1".to_string()
-        } else {
-            "0".to_string()
-        },
-    );
+    board.insert("bchosen".to_string(), players.black.clone());
+    board.insert("wchosen".to_string(), players.white.clone());
     HttpResponse::Ok().json(board)
 }
 
@@ -287,10 +253,15 @@ async fn game_to_json(
 async fn main() -> std::io::Result<()> {
     let game: Arc<Mutex<Game>> = Arc::new(Mutex::new(init_pieces()));
     let players: Arc<Mutex<Players>> = Arc::new(Mutex::new(Players {
-        white: false,
-        black: false,
+        white: "noone".to_string(),
+        black: "noone".to_string(),
     }));
-    println!("Server running at http://127.0.0.1:8080");
+
+    // let ip = "192.168.0.20";
+    let ip = "127.0.0.1";
+
+    let addr = format!("http://{}:8080", ip);
+    println!("Server running at {}", addr);
     // Start the HTTP server
     HttpServer::new(move || {
         App::new()
@@ -306,43 +277,45 @@ async fn main() -> std::io::Result<()> {
             .route("/boardstate", web::get().to(game_to_json))
             .route("/movepiece", web::post().to(move_piece))
             .route("/reset", web::get().to(reset))
-            .route(
-                "/black",
-                web::get().to(move |data: web::Data<Arc<Mutex<Players>>>| choose_black(data)),
-            )
-            .route(
-                "/white",
-                web::get().to(move |data: web::Data<Arc<Mutex<Players>>>| choose_white(data)),
-            )
+            .route("/black", web::post().to(choose_black))
+            .route("/white", web::post().to(choose_white))
             .service(Files::new("/", "./ui").index_file("index.html"))
     })
-    .bind("127.0.0.1:8080")? // Bind to localhost:8080
+    .bind((ip, 8080))?
     .run()
     .await
 }
 
-async fn choose_black(players: web::Data<Arc<Mutex<Players>>>) -> impl Responder {
+async fn choose_black(
+    players: web::Data<Arc<Mutex<Players>>>,
+    request: web::Json<ColorRequest>,
+) -> impl Responder {
+    println!("Received request in /black");
     let mut pla: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
     let mut map: HashMap<String, String> = HashMap::new();
 
-    if pla.black {
+    if pla.black != "noone" {
         map.insert("status".to_string(), "taken".to_string());
         HttpResponse::Ok().json(map)
     } else {
-        pla.black = true;
+        pla.black = request.name.clone();
         map.insert("status".to_string(), "chosen".to_string());
         HttpResponse::Ok().json(map)
     }
 }
-async fn choose_white(players: web::Data<Arc<Mutex<Players>>>) -> impl Responder {
+async fn choose_white(
+    players: web::Data<Arc<Mutex<Players>>>,
+    request: web::Json<ColorRequest>,
+) -> impl Responder {
+    println!("Received request in /white");
     let mut pla: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
     let mut map: HashMap<String, String> = HashMap::new();
 
-    if pla.white {
+    if pla.white != "noone" {
         map.insert("status".to_string(), "taken".to_string());
         HttpResponse::Ok().json(map)
     } else {
-        pla.white = true;
+        pla.white = request.name.clone();
         map.insert("status".to_string(), "chosen".to_string());
         HttpResponse::Ok().json(map)
     }
