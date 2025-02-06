@@ -3,9 +3,13 @@ In this repo you'll find a complete (to my knowledge) implementation of the game
 
 # How to run
 In the root directory:
-```cargo run```
+```
+cargo run
+```
 Then open up http://127.0.0.1:8080 in your browser of choice.
+
 Login in with your username and select the color you wish to play as.
+
 Playing against ai ins't supported YET so you'll need another client do play properly.
 
 # Notes
