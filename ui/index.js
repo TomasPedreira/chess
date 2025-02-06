@@ -4,12 +4,10 @@ const white_button = document.querySelector('.choose_white');
 const black_button = document.querySelector('.choose_black');
 const white_text = document.querySelector('.wtext');
 const black_text = document.querySelector('.btext');
-const name_form = document.querySelector('.name_form');
 const rows = 8;
 const cols = 8;
 let username = "johnDoe";
-// const dom = 'http://127.0.0.1:8080/'
-const dom = 'http://192.168.0.20:8080/'
+const dom = 'http://127.0.0.1:8080/'
 
 let click_count = 0;
 let current_chosen = 'z1';
@@ -91,24 +89,31 @@ async function get_board_state() {
     }else{
         player_to_move="white";
     }
-    if (data.wchosen!="noone"){
+    if (data.wchosen!="none"){
         chosen_players[0] = "white";
         white_text.textContent = "White: "+data.wchosen;
     }else{
         chosen_players[0] = "none";
         white_text.textContent = "White: Available";
     }
-    if (data.bchosen!="noone"){
+    if (data.bchosen!="none"){
         chosen_players[1] = "black";
         black_text.textContent = "Black: " + data.bchosen;
     }else{
         chosen_players[1] = "none";
         black_text.textContent = "Black: Available";
     }
+
+    if (data.wchosen == username){
+        chosen_color = "white";
+    }
+    if (data.bchosen == username){
+        chosen_color = "black";
+    }
     return data;
 }
 async function reset_board(){
-    username = "johnDoe";
+    username = "none";
     chosen_color = "none";
     chosen_players = ["none","none"];  
     const response = await fetch(dom + 'reset');
@@ -231,6 +236,17 @@ async function handle_reset() {
     const board_state = parse_board_state(data);
     update_board_state(board_state);
     player_to_move = "white";
+    const name_div = document.querySelector('.name-chooser');
+    name_div.textContent = "Player: ";
+    const input = document.createElement('input');
+    input.setAttribute('id', 'player');
+    input.setAttribute('type', 'text');
+    name_div.appendChild(input);
+    const button = document.createElement('button');
+    button.setAttribute('id', 'name-button');
+    button.setAttribute('onclick', 'handle_name()');
+    button.textContent = "Choose Name";
+    name_div.appendChild(button);
 }
 async function handle_white() {
     if (chosen_players[0] != "none"){
@@ -288,6 +304,10 @@ setInterval(timed_update, 1000);
 
 function handle_name(){
     username = document.getElementById('player').value;
+    document.getElementById('player').remove();
+    document.getElementById('name-button').remove();
+    const name_div = document.querySelector('.name-chooser');
+    name_div.textContent = "Player: " + username;
     console.log(username);
 }
 

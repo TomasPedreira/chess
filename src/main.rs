@@ -135,8 +135,8 @@ async fn reset(
     println!("Received request in /reset");
     let mut game: std::sync::MutexGuard<'_, Game> = game.lock().unwrap();
     let mut players: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
-    players.white = "noone".to_string();
-    players.black = "noone".to_string();
+    players.white = "none".to_string();
+    players.black = "none".to_string();
     game.reset();
     let mut board: HashMap<String, String> = HashMap::new();
 
@@ -253,11 +253,10 @@ async fn game_to_json(
 async fn main() -> std::io::Result<()> {
     let game: Arc<Mutex<Game>> = Arc::new(Mutex::new(init_pieces()));
     let players: Arc<Mutex<Players>> = Arc::new(Mutex::new(Players {
-        white: "noone".to_string(),
-        black: "noone".to_string(),
+        white: "none".to_string(),
+        black: "none".to_string(),
     }));
 
-    // let ip = "192.168.0.20";
     let ip = "127.0.0.1";
 
     let addr = format!("http://{}:8080", ip);
@@ -294,7 +293,7 @@ async fn choose_black(
     let mut pla: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
     let mut map: HashMap<String, String> = HashMap::new();
 
-    if pla.black != "noone" {
+    if pla.black != "none" {
         map.insert("status".to_string(), "taken".to_string());
         HttpResponse::Ok().json(map)
     } else {
@@ -311,7 +310,7 @@ async fn choose_white(
     let mut pla: std::sync::MutexGuard<'_, Players> = players.lock().unwrap();
     let mut map: HashMap<String, String> = HashMap::new();
 
-    if pla.white != "noone" {
+    if pla.white != "none" {
         map.insert("status".to_string(), "taken".to_string());
         HttpResponse::Ok().json(map)
     } else {
